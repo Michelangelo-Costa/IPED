@@ -139,18 +139,23 @@ enableImageThumbs = true
 
 # Enables the generation of images features during processing, allowing the search
 # for visually similar images. "enableImageThumbs" must be enabled.
-enableImageSimilarity = false
+enableImageSimilarity = true
 
 # Enables face recognition feature.
 # You may install python and some dependencies, see https://github.com/sepinf-inc/IPED/wiki/User-Manual#facerecognition
 # Advanced configuration options can be found in conf/FaceRecognitionConfig.txt.
 # If enabled, you can search for faces from the analysis interface, check the options menu.
-enableFaceRecognition = false
+enableFaceRecognition = true
 
 # Enables age estimation feature.
 # You may install python and some dependencies, see https://github.com/sepinf-inc/IPED/wiki/User-Manual#AgeEstimation
 # Advanced configuration options can be found in conf/AgeEstimationConfig.txt.
-enableAgeEstimation = false
+enableAgeEstimation = true
+
+# Enables AI-generated content detection for images.
+# Requires model file at: models/convnext-ai-detector/model.onnx
+# See https://huggingface.co/xRayon/convnext-ai-images-detector
+enableAIGCDDetector = true
 
 # Enables searching for crypto hardware wallets.
 enableSearchHardwareWallets = true

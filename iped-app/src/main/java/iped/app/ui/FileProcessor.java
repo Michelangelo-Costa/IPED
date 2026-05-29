@@ -183,6 +183,7 @@ public class FileProcessor extends CancelableWorker<Void, Void> implements IFile
         }
 
         App.get().getViewerController().loadFile(item, viewItem, contentType, highlights);
+        App.get().aigcdPanel.loadDoc(doc);
 
         if (listRelated) {
             App.get().subItemModel.listItems(doc);

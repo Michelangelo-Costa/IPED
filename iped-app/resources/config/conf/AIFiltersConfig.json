@@ -51,6 +51,12 @@
 
     {"name": "UFED Media Classification", "prefix": "UfedClassifier", "property": "ufed\\:mediaClasses", "value": "*", "dynamic": "true"},
 
-    {"name": "UFED Native Scene Classification", "prefix": "UfedScene", "property": "ufed\\:Native\\ Scene\\ Classification", "value": "*", "dynamic": "true"}
+    {"name": "UFED Native Scene Classification", "prefix": "UfedScene", "property": "ufed\\:Native\\ Scene\\ Classification", "value": "*", "dynamic": "true"},
+
+    {"name": "AIGCD - Image Score", "prefix": "AIGCDImage", "property": "aigcd\\:score\\:image", "value": "[* TO *]", "children":[
+        {"name": "High",   "value": "[0.70 TO *]"},
+        {"name": "Medium", "value": "[0.40 TO 0.69]"},
+        {"name": "Low",    "value": "[* TO 0.39]"}
+    ]}
 
 ]}

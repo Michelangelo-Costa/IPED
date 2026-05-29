@@ -35,6 +35,7 @@
 
     <task class="iped.engine.task.DocThumbTask"></task>
     <task class="iped.engine.task.ImageThumbTask"></task>
+    <task class="iped.aigcd.AIGCDTask"></task>
     <task class="iped.engine.task.die.DIETask"></task>
     <task class="iped.engine.task.similarity.ImageSimilarityTask"></task>
     <task class="iped.engine.task.PhotoDNATask"></task>

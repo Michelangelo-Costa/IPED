@@ -222,7 +222,9 @@ public class App extends JFrame implements WindowListener, IMultiSearchResultPro
     JTree tree, bookmarksTree, categoryTree;
     public JTree aiFiltersTree;
     MetadataPanel metadataPanel;
-    JScrollPane categoriesPanel, aiFiltersPanel, bookmarksPanel;
+    AIGCDPanel aigcdPanel;
+    JComponent aiFiltersPanel;
+    JScrollPane categoriesPanel, bookmarksPanel;
     JPanel evidencePanel;
     TreeListener treeListener;
     private CategoryTreeListener categoryListener;
@@ -673,9 +675,12 @@ public class App extends JFrame implements WindowListener, IMultiSearchResultPro
         bookmarksTree.setExpandsSelectedPaths(false);
 
         metadataPanel = new MetadataPanel();
+        aigcdPanel = new AIGCDPanel();
 
         categoriesPanel = new JScrollPane(categoryTree);
-        aiFiltersPanel = new JScrollPane(aiFiltersTree);
+        aiFiltersPanel = new JPanel(new BorderLayout(0, 8));
+        aiFiltersPanel.add(aigcdPanel, BorderLayout.NORTH);
+        aiFiltersPanel.add(new JScrollPane(aiFiltersTree), BorderLayout.CENTER);
         bookmarksPanel = new JScrollPane(bookmarksTree);
 
         recursiveTreeList = new JCheckBox(Messages.getString("App.RecursiveListing")); //$NON-NLS-1$
@@ -943,7 +948,7 @@ public class App extends JFrame implements WindowListener, IMultiSearchResultPro
     private void createAllDockables() {
         categoriesTabDock = createDockable("categoriestab", Messages.getString("CategoryTreeModel.RootName"), //$NON-NLS-1$ //$NON-NLS-2$
                 categoriesPanel);
-        aiFiltersTabDock = createDockable("aifilterstab", Messages.getString("App.AIFilters"), aiFiltersPanel);
+        aiFiltersTabDock = createDockable("aifilterstab", "AI", aiFiltersPanel);
         filtersTabDock = createDockable("filterstab", Messages.getString("App.appliedFilters"), //$NON-NLS-1$ //$NON-NLS-2$
                 filtersPanel);
         metadataTabDock = createDockable("metadatatab", Messages.getString("App.Metadata"), metadataPanel); //$NON-NLS-1$ //$NON-NLS-2$

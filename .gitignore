@@ -1,7 +1,18 @@
 /target/
+**/target/
 nbactions.xml
 /.settings/
 /.classpath
 /.project
 .pydevproject
 /.idea/
+
+# Claude Code local settings
+.claude/
+
+# Local documentation files (not part of the plugin)
+*.tex
+GUIA_IPED.md
+
+# Eclipse per-project settings in submodules
+**/.settings/
