@@ -2,193 +2,144 @@
 
 ## Visao geral
 
-O AIGCD e uma extensao em desenvolvimento para o IPED com foco em deteccao de conteudo gerado por inteligencia artificial. A proposta e calcular scores de suspeita por modalidade, armazenar esses scores no indice do caso e exibi-los na interface grafica do IPED para apoiar a analise pericial.
+O AIGCD e uma extensao para o IPED com foco em deteccao de conteudo gerado por
+inteligencia artificial. Calcula um score de suspeita para imagens, armazena no
+indice do caso e exibe na interface grafica para apoiar a analise pericial.
 
-O nome AIGCD pode ser lido como "AI-Generated Content Detection".
+AIGCD = "AI-Generated Content Detection".
 
-Estado atual do desenvolvimento:
+**Estado atual:**
+- Deteccao implementada para imagens (score 0.0 a 1.0).
+- `AIGCDTask` fica no modulo separado `iped-aigcd-plugin` usando ConvNeXt V2 Base via ONNX Runtime.
+- Painel visual (`AIGCDPanel`) integrado na aba **AI** do SearchApp, junto com as demais features de IA do IPED (faces, idade estimada).
+- Filtros High/Medium/Low na arvore AI permitem triagem rapida.
+- Deteccao de video, audio e texto e trabalho futuro.
 
-- A deteccao implementada cobre imagens.
-- A Task `AIGCDTask` fica no modulo separado `iped-aigcd-plugin` e usa o modelo ConvNeXt V2 Base exportado para ONNX para produzir um score de 0.0 a 1.0.
-- A aba `AIGCD` da interface exibe o painel de score e a arvore de filtros em um unico lugar.
-- Os filtros AIGCD usam faixas High (>=0.70), Medium (>=0.40) e Low (<0.40) para os campos de score.
-- Video, audio e texto aparecem como arquitetura planejada, mas ainda nao possuem tasks reais implementadas.
+---
 
 ## Modelo usado
 
-**Modelo**: ConvNeXt V2 Base (`convnextv2_base`) treinado pelo projeto xRayon/Toufik.
-**Repositorio de referencia**: `https://huggingface.co/xRayon/convnext-ai-images-detector`
-**Checkpoint local**: `C:\IPED\xrayon-convnext\AI Images Detector\checkpoints\checkpoint_phase2.pth`
-**Formato de deploy**: ONNX (exportado com `torch.onnx.export`, dynamo=False), tamanho ~334 MB.
-**Caminho esperado pelo plugin**: `<iped-root>/models/convnext-ai-detector/model.onnx`
-
-O modelo foi treinado para classificar imagens em duas classes:
-- Classe 0: real (humana/fotografada)
-- Classe 1: fake (gerada por IA)
+| Item | Valor |
+|---|---|
+| Arquitetura | ConvNeXt V2 Base (`convnextv2_base`) |
+| Referencia | https://huggingface.co/xRayon/convnext-ai-images-detector |
+| Checkpoint local | `C:\IPED\xrayon-convnext\AI Images Detector\checkpoints\checkpoint_phase2.pth` |
+| Formato de deploy | ONNX (~334 MB), exportado com `torch.onnx.export(dynamo=False)` |
+| Caminho esperado | `<iped-root>/models/convnext-ai-detector/model.onnx` |
+| Classes | 0 = real, 1 = gerada por IA |
 
 O plugin aplica softmax nas logits brutas e retorna a probabilidade da classe 1 como score.
 
-## Onde o codigo foi alterado
+---
 
-Arquivos principais:
+## Arquivos criados e modificados
 
-- `iped-aigcd-plugin/src/main/java/iped/aigcd/AIGCDTask.java`
-  - Task de processamento do IPED.
-  - Carrega o modelo ONNX via ONNX Runtime.
-  - Processa itens cujo MIME type comeca com `image/`.
-  - Preprocessamento: Resize(288) -> CenterCrop(256) -> Normalize ImageNet.
-  - Aplica softmax nas logits e retorna probabilidade da classe 1 (fake) como score.
-  - Grava o score numerico no atributo `aigcd:score:image`.
+### Novos arquivos
 
-- `iped-aigcd-plugin/pom.xml`
-  - Compila o JAR do plugin.
-  - Copia `iped-aigcd-plugin-4.4.0-SNAPSHOT.jar` para `target/release/iped-4.4.0-SNAPSHOT/lib`.
-  - Copia a dependencia `onnxruntime-1.17.0.jar` para `target/release/plugins`.
+| Arquivo | Descricao |
+|---|---|
+| `iped-aigcd-plugin/pom.xml` | Modulo Maven do plugin |
+| `iped-aigcd-plugin/src/main/java/iped/aigcd/AIGCDTask.java` | Task de inferencia ONNX |
+| `iped-app/src/main/java/iped/app/ui/AIGCDPanel.java` | Painel visual Swing |
+| `iped-app/src/main/resources/iped/app/ui/filter/AIGCDImage.*.png` | Icones dos filtros na aba AI |
 
-- `iped-app/src/main/java/iped/app/ui/AIGCDPanel.java`
-  - Painel visual exibido na interface do IPED.
-  - Mostra score geral e scores por modalidade.
-  - Classifica o maior score como `HIGH`, `MEDIUM`, `LOW` ou `N/A`.
+### Arquivos modificados
 
-- `iped-app/src/main/java/iped/app/ui/App.java`
-  - Registra a aba `AIGCD` no layout da interface.
-  - Agrupa o painel de score e a arvore de filtros AIGCD em uma unica aba.
+| Arquivo | O que mudou |
+|---|---|
+| `pom.xml` (raiz) | Incluiu `iped-aigcd-plugin` no build Maven |
+| `iped-app/src/main/java/iped/app/ui/App.java` | Instancia e registra `AIGCDPanel` na aba AI |
+| `iped-app/src/main/java/iped/app/ui/FileProcessor.java` | Chama `aigcdPanel.loadDoc(doc)` ao selecionar item |
+| `iped-app/resources/config/IPEDConfig.txt` | Adicionado `enableAIGCDDetector = true` |
+| `iped-app/resources/config/conf/TaskInstaller.xml` | Registra `iped.aigcd.AIGCDTask` na pipeline |
+| `iped-app/resources/config/conf/AIFiltersConfig.json` | Adiciona filtro `aigcd:score:image` na aba AI |
+| `iped-app/resources/localization/iped-ai-filters*.properties` | Labels do filtro AIGCD (6 idiomas) |
+| `iped-app/resources/localization/iped-desktop-messages*.properties` | Strings do painel AIGCD (6 idiomas) |
 
-- `iped-app/src/main/java/iped/app/ui/FileProcessor.java`
-  - Linha 186: `App.get().aigcdPanel.loadDoc(doc);`
-  - Atualiza o painel AIGCD quando o usuario seleciona um item.
+---
 
-- `iped-app/resources/config/conf/TaskInstaller.xml`
-  - Registra `iped.aigcd.AIGCDTask` na pipeline de processamento.
+## Qualidade do codigo
 
-- `iped-app/resources/config/conf/AIFiltersConfig.json`
-  - Adiciona filtros da aba AI para:
-    - `aigcd:score:image`
-    - `aigcd:score:video`
-    - `aigcd:score:audio`
-    - `aigcd:score:text`
+O codigo passou por code review seguindo os padroes do projeto IPED:
 
-- `pom.xml` (raiz)
-  - Inclui o modulo `iped-aigcd-plugin` no build Maven.
+### Thread safety em `AIGCDTask`
+Uso de `AtomicBoolean` + `synchronized` no `init()` e `finish()`, igual ao
+`ImageSimilarityTask`. Evita dupla inicializacao do modelo quando multiplas
+threads Worker do IPED chamam `init()` simultaneamente.
 
-## Como rodar o IPED com o AIGCD
+```java
+private static final AtomicBoolean init     = new AtomicBoolean(false);
+private static final AtomicBoolean finished = new AtomicBoolean(false);
+private static volatile OrtEnvironment env;
+private static volatile OrtSession session;
 
-As alteracoes estao no codigo-fonte em:
-
-```powershell
-C:\IPED\IPED
+public void init(ConfigurationManager configurationManager) throws Exception {
+    synchronized (init) {
+        if (init.get()) return;
+        // ... carrega modelo ...
+        init.set(true);
+    }
+}
 ```
 
-Depois do build, a versao gerada fica em:
+### Habilitacao via IPEDConfig.txt
+Usa `EnableTaskProperty` (padrao do IPED) para ler `enableAIGCDDetector` do
+`IPEDConfig.txt`. A task so roda se explicitamente habilitada.
 
-```powershell
-C:\IPED\IPED\target\release\iped-4.4.0-SNAPSHOT
+```java
+public static final String ENABLE_PARAM = "enableAIGCDDetector";
+
+@Override
+public List<Configurable<?>> getConfigurables() {
+    return Arrays.asList(new EnableTaskProperty(ENABLE_PARAM));
+}
 ```
 
-### Requisitos
+### Verificacao `isToAddToCase()`
+`process()` verifica se o item deve ser indexado antes de processar, seguindo
+o padrao de todos os tasks do IPED.
 
-- Java 11 Liberica Full JDK (com JavaFX)
-- Maven 3.9+
-- Windows 11
+### Internacionalizacao
+`AIGCDPanel` usa `Messages.getString()` para todos os textos visiveis.
+Strings adicionadas nos 6 arquivos de localizacao do IPED (en, pt-BR, de, es, fr, it).
 
-### Build completo
+### Licenca GPL
+`AIGCDPanel.java` e `AIGCDTask.java` incluem o cabecalho GPL padrao do projeto.
 
-```powershell
-cd C:\IPED\IPED
-mvn install -DskipTests
-```
+---
 
-Para recompilar somente os modulos relevantes durante o desenvolvimento:
-
-```powershell
-cd C:\IPED\IPED
-mvn install -pl iped-app,iped-aigcd-plugin --am -DskipTests
-```
-
-Evite usar `mvn clean` sem necessidade. Se o modelo `model.onnx` estiver somente dentro de `target\release\iped-4.4.0-SNAPSHOT\models\convnext-ai-detector`, voce precisara copia-lo novamente depois do clean.
-
-### Modelo ONNX
-
-A Task procura o modelo em:
-
-```powershell
-<iped-root>\models\convnext-ai-detector\model.onnx
-```
-
-Exemplo com a versao de build:
-
-```powershell
-C:\IPED\IPED\target\release\iped-4.4.0-SNAPSHOT\models\convnext-ai-detector\model.onnx
-```
-
-Se o arquivo nao existir, a Task registra um aviso no log e continua o processamento sem calcular o score AIGCD.
-
-Para exportar o modelo do checkpoint PyTorch para ONNX, use o script `export_model.py` disponivel em `iped-aigcd-plugin/` (requer Python com torch e timm instalados). O modelo exportado tem aproximadamente 334 MB.
-
-### Processar uma pasta de teste
-
-```powershell
-cd C:\IPED\IPED\target\release\iped-4.4.0-SNAPSHOT
-.\iped.exe -d C:\IPED\amostras-aigcd -o C:\IPED\casos\caso-aigcd-XX
-```
-
-Onde:
-- `-d` indica a evidencia ou pasta de entrada.
-- `-o` indica a pasta de saida do caso processado (use um nome novo a cada teste).
-
-### Onde o JAR do plugin precisa estar
-
-O JAR do plugin **deve estar na pasta `lib/`** da instalacao do IPED, nao em `plugins/`. Isso e necessario porque o `TaskInstallerConfig` usa `Class.forName()` (classloader do sistema), que so enxerga JARs do `lib/`.
-
-O `pom.xml` do plugin ja cuida disso automaticamente no build:
-
-```
-target/release/iped-4.4.0-SNAPSHOT/lib/iped-aigcd-plugin-4.4.0-SNAPSHOT.jar
-```
-
-O `onnxruntime-1.17.0.jar` vai para `plugins/`:
-
-```
-target/release/plugins/onnxruntime-1.17.0.jar
-```
-
-### Abrir o caso na interface grafica
-
-```powershell
-cd C:\IPED\casos\caso-aigcd-XX
-.\IPED-SearchApp.exe
-```
-
-O `IPED-SearchApp.exe` dentro da pasta do caso ja aponta para o `iped-search-app.jar` correto. Certifique-se de que esse JAR vem da versao compilada com `AIGCDPanel`, nao de uma versao anterior.
-
-## Fluxo tecnico do AIGCD
+## Fluxo tecnico
 
 ### Fase 1: Processamento (indexacao)
 
 ```
+IPEDConfig.txt
+  enableAIGCDDetector = true
+        |
+        v
 TaskInstaller.xml
   <task class="iped.aigcd.AIGCDTask"/>
         |
         v
 TaskInstallerConfig.java
-  Class.forName("iped.aigcd.AIGCDTask")   <- requer JAR em lib/
+  Class.forName("iped.aigcd.AIGCDTask")  <- JAR deve estar em lib/
         |
         v
-AIGCDTask.init()
-  carrega models/convnext-ai-detector/model.onnx via ONNX Runtime
+AIGCDTask.init()  [synchronized, AtomicBoolean]
+  le enableAIGCDDetector do IPEDConfig.txt
+  carrega models/convnext-ai-detector/model.onnx
         |
-        v  (para cada arquivo do caso)
+        v  (para cada arquivo)
 AIGCDTask.process(IItem item)
-  verifica MIME type comeca com "image/"
-  le o stream da imagem
-  Resize(288) -> CenterCrop(256x256) -> Normalize ImageNet
-  roda inferencia ONNX -> logits [real, fake]
-  softmax -> score = exp(fake) / (exp(real) + exp(fake))
+  isToAddToCase() && isImage()
+  Resize(288) -> CenterCrop(256) -> Normalize ImageNet
+  ONNX Runtime -> logits [real, fake]
+  score = softmax(fake) = exp(fake) / (exp(real) + exp(fake))
   item.setExtraAttribute("aigcd:score:image", score)
         |
         v
 Lucene Index
-  StoredField("aigcd:score:image", 0.97f)
+  FloatPoint + StoredField "aigcd:score:image"
 ```
 
 ### Fase 2: Visualizacao (SearchApp)
@@ -197,150 +148,238 @@ Lucene Index
 Usuario clica em um arquivo
         |
         v
-FileProcessor.java:186
+FileProcessor.java
   App.get().aigcdPanel.loadDoc(doc)
         |
         v
 AIGCDPanel.loadDoc(Document doc)
-  doc.getField("aigcd:score:image")   <- le do Lucene
-  calcula HIGH/MEDIUM/LOW
-  atualiza badge + barra de progresso na tela
+  parseScore(doc, "aigcd:score:image")  <- le do Lucene
+  applyScore(int img)
+  badge HIGH/MEDIUM/LOW + barra de progresso
 ```
+
+---
+
+## Como compilar e testar
+
+### Requisitos
+
+- Java 11 Liberica Full JDK (com JavaFX)
+- Maven 3.9+
+- Python 3.9.x (para Face Recognition e Age Estimation)
+
+### Build
+
+```powershell
+# Build completo
+cd C:\IPED\IPED
+mvn install -DskipTests
+
+# Build rapido (so os modulos alterados)
+mvn install -pl iped-app,iped-aigcd-plugin --am -DskipTests
+```
+
+### Processar um caso de teste
+
+```powershell
+cd C:\IPED\IPED\target\release\iped-4.4.0-SNAPSHOT
+.\iped.exe -d C:\IPED\amostras-aigcd -o C:\IPED\casos\caso-aigcd-XX
+```
+
+### Copiar plugins para o caso (obrigatorio apos processar)
+
+```powershell
+mkdir C:\IPED\casos\caso-aigcd-XX\plugins
+
+copy "C:\IPED\IPED\target\release\iped-4.4.0-SNAPSHOT\lib\iped-aigcd-plugin-4.4.0-SNAPSHOT.jar" `
+     C:\IPED\casos\caso-aigcd-XX\plugins\
+
+copy "C:\IPED\IPED\target\release\plugins\onnxruntime-1.17.0.jar" `
+     C:\IPED\casos\caso-aigcd-XX\plugins\
+
+copy "C:\IPED\IPED\target\release\iped-4.4.0-SNAPSHOT\lib\iped-search-app.jar" `
+     "C:\IPED\casos\caso-aigcd-XX\iped\lib\" -Force
+```
+
+> **Por que copiar o iped-search-app.jar?**
+> O JAR dentro da pasta do caso pode ser de uma versao anterior sem `AIGCDPanel`.
+> A copia garante que o painel visual vai aparecer corretamente.
+
+> **Por que a pasta plugins/?**
+> O Bootstrap do SearchApp monta o classpath como
+> `lib/iped-search-app.jar` + `plugins/*`. Sem os JARs em `plugins/`, o
+> SearchApp nao encontra as classes do plugin ao abrir o caso.
+
+### Abrir o caso
+
+```powershell
+cd C:\IPED\casos\caso-aigcd-XX
+.\IPED-SearchApp.exe
+```
+
+### Modelo ONNX
+
+Se o modelo nao existir, a task registra aviso e continua sem calcular score.
+
+Caminho esperado:
+```
+C:\IPED\IPED\target\release\iped-4.4.0-SNAPSHOT\models\convnext-ai-detector\model.onnx
+```
+
+Apos `mvn clean`, o modelo e apagado junto com `target/`. Copiar novamente.
+
+---
 
 ## Campos de metadados
 
 | Campo | Modalidade | Status |
-| --- | --- | --- |
+|---|---|---|
 | `aigcd:score:image` | Imagem | Implementado e validado |
-| `aigcd:score:video` | Video | Planejado |
-| `aigcd:score:audio` | Audio | Planejado |
-| `aigcd:score:text` | Texto | Planejado |
+| `aigcd:score:video` | Video | Trabalho futuro |
+| `aigcd:score:audio` | Audio | Trabalho futuro |
+| `aigcd:score:text` | Texto | Trabalho futuro |
 
 Convencao de score:
+- `0.00` a `0.39` = LOW (baixa suspeita)
+- `0.40` a `0.69` = MEDIUM (suspeita media)
+- `0.70` a `1.00` = HIGH (alta suspeita)
 
-- `0.00` a `0.39`: baixa suspeita (LOW).
-- `0.40` a `0.69`: suspeita media (MEDIUM).
-- `0.70` a `1.00`: alta suspeita (HIGH).
+Os scores sao indicadores probabilisticos. A decisao final deve ser feita por
+um perito humano com contexto e validacao adequados.
 
-Importante: esses scores sao indicadores probabilisticos. Eles nao devem ser tratados como conclusao automatica. A decisao final precisa ser feita por uma pessoa avaliadora, com contexto e validacao.
+---
 
 ## Pontos de atencao tecnica
 
-### 1. A Task esta isolada em JAR, mas a UI ainda e integrada
+### 1. Task isolada em JAR, UI integrada no fonte
 
-A parte de processamento do AIGCD fica em um modulo proprio (`iped-aigcd-plugin`), com JAR copiado para `lib/` e classe registrada em `TaskInstaller.xml`.
+O `AIGCDTask` fica em modulo proprio (`iped-aigcd-plugin`), com JAR copiado
+para `lib/` e registrado em `TaskInstaller.xml`. Isolamento completo.
 
-A parte da interface grafica ainda altera o `iped-app`, porque o `AIGCDPanel` e instanciado diretamente em `App.java` e atualizado por `FileProcessor.java`. O IPED nao tem um contrato publico para plugins criarem novas abas/paineis da UI sem alterar essas classes. Isso e uma limitacao arquitetural documentada.
+O `AIGCDPanel` (UI) ainda modifica `iped-app`, porque o IPED nao tem contrato
+publico para plugins criarem abas/paineis da UI sem alterar `App.java` e
+`FileProcessor.java`. Isso e uma limitacao arquitetural documentada do IPED.
 
-### 2. Como saber se existe ponto oficial de extensao para abas/paineis
+### 2. Por que o JAR precisa estar em lib/ E plugins/
 
-O IPED tem mecanismo claro para:
-- carregar JARs da pasta configurada em `LocalConfig.txt` por `pluginFolder`
-- adicionar esses JARs ao classpath no bootstrap
-- ler recursos de configuracao dentro de JARs de plugin
-- instanciar tasks registradas em `TaskInstaller.xml` com `Class.forName(...)`
+- `lib/iped-aigcd-plugin.jar`: necessario para o **engine** carregar a task via
+  `Class.forName()` durante o processamento.
+- `plugins/iped-aigcd-plugin.jar`: necessario para o **SearchApp** encontrar a
+  classe via `plugins/*` no classpath ao abrir o caso.
 
-Para a UI, a criacao dos paineis e feita diretamente em `App.java` com chamadas como `createDockable(...)`. Nao existe uma interface do tipo `UIPanelPlugin` ou `ServiceLoader` para paineis. A conclusao e: o IPED tem extensao oficial para tasks; para novas abas da interface, pelo codigo atual, nao ha ponto de extensao formal.
+O `pom.xml` do plugin cuida do `lib/` automaticamente. A pasta `plugins/` do
+caso precisa ser preenchida manualmente apos o processamento (ver secao acima).
 
-### 3. Falta configuracao para habilitar/desabilitar
+### 3. Localizacao e icones
 
-`AIGCDTask.isEnabled()` retorna sempre `true`. Para uso real, o ideal e criar uma configuracao propria:
+Strings visiveis no painel estao em `iped-desktop-messages*.properties`.
+Labels dos filtros estao em `iped-ai-filters*.properties`.
+Icones dos filtros estao em `iped-app/src/main/resources/iped/app/ui/filter/AIGCDImage.*.png`.
 
-```text
-enableAIGCD=true
-aigcdModelPath=models/convnext-ai-detector/model.onnx
-aigcdMinScoreHigh=0.70
-aigcdMinScoreMedium=0.40
+---
+
+## Validacao experimental
+
+Testes com seis imagens apos implementacao completa:
+
+| Imagem | Tipo | Score | Classificacao |
+|---|---|---|---|
+| Pizza.png | IA (gerada) | 97.43% | HIGH |
+| Gatos.png | IA (gerada) | 97.17% | HIGH |
+| Idosa.jpg | Real (foto) | ~2% | LOW |
+| Mulher nova.jpg | Real (foto) | ~2% | LOW |
+| Gato.jpeg | Real (foto) | 15.47% | LOW |
+| Pizzas.jpeg | Real (foto) | 2.87% | LOW |
+
+O modelo mostrou boa separacao nas amostras iniciais. Deve ser avaliado com
+conjunto maior e mais diverso para o TCC.
+
+---
+
+## Git e repositorio
+
+Fork do projeto: https://github.com/Michelangelo-Costa/IPED/tree/tcc-aigcd
+
+```powershell
+# Clonar a branch do TCC
+git clone -b tcc-aigcd https://github.com/Michelangelo-Costa/IPED.git
+
+# Atualizar com mudancas do IPED oficial
+git fetch upstream
+git merge upstream/master
+
+# Publicar mudancas no fork
+git add .
+git commit -m "mensagem"
+git push origin tcc-aigcd
 ```
 
-### 4. Filtros de video, audio e texto ainda sao futuros
+---
 
-O arquivo `AIFiltersConfig.json` ja adiciona filtros para video, audio e texto, mas a Task atual so calcula imagem. Esses filtros ficam vazios ate existirem tasks especificas.
+## Registro de software
 
-### 5. Validacao experimental
+Separacao entre codigo original e contribuicoes:
 
-Testes iniciais com quatro imagens:
-
-| Imagem | Score | Classificacao |
+| Componente | Tipo | Autoria |
 |---|---|---|
-| Pizza.png (IA) | 97.43% | HIGH |
-| Gatos.png (IA) | 97.17% | HIGH |
-| Gato.jpeg (real) | 15.47% | LOW |
-| Pizzas.jpeg (real) | 2.87% | LOW |
+| `AIGCDTask.java` | Novo arquivo | Criado para o TCC |
+| `AIGCDPanel.java` | Novo arquivo | Criado para o TCC |
+| `App.java` | Modificado | 3 linhas adicionadas |
+| `FileProcessor.java` | Modificado | 1 linha adicionada |
+| `TaskInstaller.xml` | Modificado | 1 linha adicionada |
+| `AIFiltersConfig.json` | Modificado | Filtro AIGCD adicionado |
+| `IPEDConfig.txt` | Modificado | Flag `enableAIGCDDetector` adicionada |
+| Arquivos de localizacao | Modificado | 4 chaves por idioma |
+| Icones PNG | Novo | 4 arquivos criados |
+| Demais arquivos | Original IPED | Licenca GPL |
 
-O modelo mostrou boa separacao para essas amostras. Deve ser avaliado com um conjunto maior e com imagens de diferentes geradores e estilos.
+**Modelo ConvNeXt V2 Base**: treinado por xRayon — verificar licenca antes de distribuir.
+**ONNX Runtime**: licenca MIT (Microsoft).
+**IPED**: licenca GPL — distribuicoes derivadas devem respeitar a licenca.
 
-### 6. Falta teste automatizado
+---
 
-Sugestoes:
-- Teste unitario para classificacao High/Medium/Low.
-- Teste da Task com uma imagem pequena e um modelo mockado.
-- Teste para confirmar que `aigcd:score:image` aparece no documento Lucene.
-- Teste para confirmar que o filtro AI retorna itens nas faixas esperadas.
-
-## Organizacao recomendada para o TCC
+## Organizacao do TCC
 
 1. **Problema**: Crescimento de conteudos gerados por IA e dificuldade de triagem em pericia digital.
 2. **Objetivo geral**: Integrar ao IPED um modulo de apoio a deteccao de conteudo gerado por IA.
 3. **Objetivos especificos**:
-   - Criar uma Task de processamento para imagens.
-   - Armazenar scores no indice do caso.
-   - Criar filtros pesquisaveis na aba AI.
-   - Criar painel de visualizacao dos scores.
-   - Avaliar desempenho e confiabilidade em uma base de teste.
-4. **Artefato de software**: Customizacao/plugin AIGCD para o IPED.
-5. **Avaliacao**: Testar com imagens reais e geradas por IA, medir metricas quantitativas, discutir limitacoes.
+   - Task de processamento para imagens com inferencia ONNX.
+   - Armazenamento de scores no indice Lucene do caso.
+   - Filtros pesquisaveis na aba AI (High/Medium/Low).
+   - Painel visual com badge e barra de progresso.
+   - Avaliacao de desempenho com dataset rotulado.
+4. **Artefato**: Plugin AIGCD + integracao no IPED.
+5. **Avaliacao**: Metricas de acuracia, precisao, revocacao, F1-score, tempo de processamento.
 
-## Git, fork e organizacao do repositorio
+---
 
-Para registrar autoria no TCC, crie um fork no GitHub e aponte seu clone para ele:
+## Roadmap
 
-```powershell
-cd C:\IPED\IPED
-git remote rename origin upstream
-git remote add origin https://github.com/SEU_USUARIO/IPED.git
-git switch -c tcc-aigcd
-git push -u origin tcc-aigcd
-```
+**Prioridade alta (antes da defesa):**
+- Criar dataset rotulado (imagens reais + IA) e medir metricas para o TCC
+- Medir tempo medio de processamento por imagem
+- Capturas de tela do painel para o texto do TCC
 
-Para atualizar com mudancas do IPED oficial:
+**Prioridade media:**
+- Criar `AIGCDConfig.txt` para configurar caminho do modelo sem recompilar
+- Adicionar testes unitarios minimos
+- Calibrar thresholds com base rotulada
 
-```powershell
-git fetch upstream
-git merge upstream/master
-```
+**Prioridade futura (pos-TCC):**
+- Implementar deteccao de video, audio e texto
+- Preparar PR para o repositorio oficial `sepinf-inc/IPED`
+- Propor mecanismo de extensao de UI via plugins ao IPED
 
-## Registro de software
+---
 
-Para registro de software, separe claramente:
-- O que e codigo original do IPED (GPL).
-- O que foi criado/modificado: `AIGCDTask.java`, `AIGCDPanel.java`, modificacoes em `App.java`, `FileProcessor.java`, `TaskInstaller.xml`, `AIFiltersConfig.json`, `pom.xml`.
-- Modelo ConvNeXt V2 Base: treinado por xRayon/Toufik, verificar licenca antes de distribuir.
-- Dependencia ONNX Runtime: licenca MIT (Microsoft).
+## Resumo do estado atual
 
-O IPED usa GPL, entao uma distribuicao derivada precisa respeitar essa licenca.
+Plugin funcional para imagens. Codigo passou por code review completo seguindo
+os padroes do IPED: thread safety com `AtomicBoolean`, habilitacao via
+`EnableTaskProperty`, verificacao `isToAddToCase()`, internacionalizacao via
+`Messages.getString()`, cabecalhos GPL e icones padronizados.
 
-## Roadmap sugerido
-
-**Prioridade alta**:
-- Criar configuracao para habilitar/desabilitar a Task e trocar o caminho do modelo.
-- Documentar origem e licenca do modelo ONNX.
-- Avaliar com um conjunto maior de imagens (reais e geradas por IA).
-- Medir tempo medio de processamento por imagem.
-
-**Prioridade media**:
-- Adicionar testes automatizados.
-- Criar capturas de tela da aba AIGCD para o TCC.
-- Calibrar thresholds com uma base rotulada.
-- Melhorar logs e mensagens de erro.
-
-**Prioridade futura**:
-- Implementar deteccao de video, audio e texto.
-- Criar relatorio exportavel com scores AIGCD.
-- Propor ao IPED um mecanismo de extensao de UI via plugins (trabalho futuro).
-
-## Resumo honesto do estado atual
-
-O prototipo esta funcional para imagens: o plugin carrega o modelo ConvNeXt V2 Base via ONNX Runtime, processa cada imagem no pipeline do IPED, grava o score no indice Lucene e exibe o resultado na aba AIGCD do SearchApp. Os testes iniciais com quatro amostras mostraram boa separacao entre imagens reais e geradas por IA.
-
-A Task de processamento esta separada em JAR de plugin. A interface grafica ainda requer modificacao do codigo-fonte do `iped-app`, pois o IPED nao tem ponto de extensao de UI formal. Isso e documentado como limitacao arquitetural e motivacao para trabalho futuro.
+A Task esta isolada em JAR de plugin. A UI ainda requer modificacao do
+codigo-fonte do `iped-app` por limitacao arquitetural do IPED (sem ponto de
+extensao formal para paineis). Isso e documentado como motivacao para trabalho futuro.
