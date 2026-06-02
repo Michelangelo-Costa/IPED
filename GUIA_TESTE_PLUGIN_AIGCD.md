@@ -43,7 +43,7 @@ cd IPED
 
 O modelo de detecção de IA não está no repositório (334 MB). Baixe separadamente:
 
-**Opção A — Receber o arquivo diretamente** (peça para o Michelangelo enviar o `model.onnx`)
+**Opção A — Baixar diretamente no drive** (https://drive.google.com/file/d/1Kfit6v2LSwYkfjol7m9RC7PSESPVbpx_/view?usp=sharing)
 
 **Opção B — Exportar do checkpoint** (requer Python + torch + timm):
 ```powershell
