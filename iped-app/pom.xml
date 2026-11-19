@@ -26,6 +26,11 @@
             <artifactId>iped-geo</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>iped</groupId>
+            <artifactId>iped-aigcd-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
       	<dependency>
           <groupId>com.beust</groupId>
           <artifactId>jcommander</artifactId>

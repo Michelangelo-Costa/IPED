@@ -10,12 +10,11 @@
     <artifactId>iped-aigcd-plugin</artifactId>
     <packaging>jar</packaging>
 
-    <properties>
-        <release.dir>${project.parent.build.directory}/release/iped-${project.version}</release.dir>
-        <plugin.dir>${release.dir}/../plugins</plugin.dir>
-        <lib.dir>${release.dir}/lib</lib.dir>
-    </properties>
-
+    <!--
+        AI-generated content detection task. This module is a dependency of iped-app,
+        so its jar and the ONNX Runtime library are copied to lib/ and added to the
+        application classpath like the other IPED modules.
+    -->
     <dependencies>
         <dependency>
             <groupId>iped</groupId>
@@ -29,50 +28,4 @@
             <version>1.17.0</version>
         </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>copy-aigcd-plugin-jar</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${lib.dir}</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>${project.build.directory}</directory>
-                                    <includes>
-                                        <include>${project.build.finalName}.jar</include>
-                                    </includes>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>copy-aigcd-runtime-dependencies</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <configuration>
-                            <includeArtifactIds>onnxruntime</includeArtifactIds>
-                            <outputDirectory>${plugin.dir}</outputDirectory>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 </project>
