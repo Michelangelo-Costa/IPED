@@ -1,0 +1,71 @@
+@startuml AIGCD_Casos_de_Uso
+
+skinparam shadowing false
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 11
+skinparam actorStyle awesome
+
+skinparam usecase {
+  BackgroundColor #F8F9FB
+  BorderColor #1E5AA0
+  ArrowColor #333333
+}
+
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #1E5AA0
+}
+
+title <b>Plugin AIGCD — Diagrama de Casos de Uso</b>
+
+left to right direction
+
+actor "Perito\nDigital" as perito
+actor "Administrador\nIPED" as admin
+
+rectangle "IPED + Plugin AIGCD" {
+
+  usecase "Configurar plugin\n(enableAIGCDDetector)" as UC_config
+  usecase "Definir caminho\ndo modelo ONNX"        as UC_model
+  usecase "Processar caso\n(iped.exe -d ... -o ...)" as UC_proc
+  usecase "Calcular score\nAIGCD por imagem"       as UC_score
+  usecase "Indexar score\nno Lucene"               as UC_index
+  usecase "Abrir caso\nno SearchApp"               as UC_open
+  usecase "Selecionar evidencia\nna tabela"        as UC_select
+  usecase "Visualizar painel AIGCD\n(badge HIGH/MED/LOW)" as UC_view
+  usecase "Filtrar por nivel\nde suspeita"         as UC_filter
+  usecase "Aplicar bookmark\n/ marcar evidencia"   as UC_mark
+  usecase "Exportar relatorio\ndo caso"            as UC_export
+}
+
+admin   --> UC_config
+admin   --> UC_model
+perito  --> UC_proc
+perito  --> UC_open
+perito  --> UC_select
+perito  --> UC_view
+perito  --> UC_filter
+perito  --> UC_mark
+perito  --> UC_export
+
+UC_proc   ..> UC_score  : <<include>>
+UC_score  ..> UC_index  : <<include>>
+UC_select ..> UC_view   : <<include>>
+UC_view   <.. UC_filter : <<extend>>
+UC_filter <.. UC_mark   : <<extend>>
+UC_mark   <.. UC_export : <<extend>>
+UC_config ..> UC_proc   : <<include>>
+
+note bottom of UC_view
+  Painel integrado a aba AI
+  do SearchApp, ao lado de
+  Faces e Estimated Age
+end note
+
+note bottom of UC_filter
+  Filtros High/Medium/Low
+  na arvore de filtros
+  da aba AI
+end note
+
+@enduml

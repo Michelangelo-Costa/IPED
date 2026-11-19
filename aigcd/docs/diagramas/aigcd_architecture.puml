@@ -1,0 +1,82 @@
+@startuml AIGCD_Arquitetura
+!pragma layout smetana
+
+skinparam shadowing false
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 10
+skinparam componentStyle uml2
+
+skinparam component {
+  BackgroundColor #F8F9FB
+  BorderColor #1E5AA0
+  FontSize 10
+}
+
+skinparam database {
+  BackgroundColor #FFF8EB
+  BorderColor #B05C00
+}
+
+skinparam folder {
+  BackgroundColor #EBF5EB
+  BorderColor #2E7D2E
+}
+
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #1E5AA0
+  FontStyle bold
+}
+
+title <b>Plugin AIGCD — Diagrama de Arquitetura</b>
+
+actor "Perito\nDigital" as perito
+
+package "Fase 1 — Processamento (iped.exe)" #FAFCFF {
+  [IPED Engine\n(iped-engine)]                     as engine
+  [TaskInstaller.xml]                              as tinst
+  [IPEDConfig.txt\nenableAIGCDDetector=true]       as conf
+  component "AIGCDTask\n<i>lib/iped-aigcd-plugin.jar</i>" as task
+  component "ONNX Runtime\n<i>lib/onnxruntime.jar</i>" as ort
+  folder "models/convnext-ai-detector/\nmodel.onnx\n(ConvNeXt V2 Base, ~335 MB)" as model
+}
+
+package "Fase 2 — Visualização (IPED-SearchApp)" #FAFCFF {
+  [IPED-SearchApp]                                 as searchapp
+  component "AIGCDPanel\n(aba IA)"                 as panel
+  component "Filtros Alto/Médio/Baixo\n(AIFiltersConfig.json)" as filter
+}
+
+database "Caso processado\n(índice Lucene)\naigcd:score:image" as lucene
+
+' === Fluxo Fase 1 ===
+perito  -->  engine     : "iped.exe -d ... -o caso"
+conf    -->  engine     : lê a flag
+tinst   -->  engine     : registra a tarefa
+engine  -->  task       : Class.forName
+task    -->  ort        : inferência
+task    -->  model      : carrega o ONNX
+task    -->  lucene     : grava o score
+
+' === Fluxo Fase 2 ===
+perito    -->  searchapp : "IPED-SearchApp.exe"
+searchapp -->  panel     : exibe na aba IA
+searchapp -->  filter    : monta a árvore de filtros
+panel     -->  lucene    : loadDoc(doc)
+filter    -->  lucene    : consulta por faixa
+
+note right of task
+  O módulo <b>iped-aigcd-plugin</b> é dependência do
+  <b>iped-app</b>: o JAR e o ONNX Runtime são copiados
+  para <b>lib/</b> e listados no manifesto do iped.jar
+  e do iped-search-app.jar, como os demais módulos.
+  Cada caso processado já leva esses JARs.
+end note
+
+note bottom of filter
+  Faixas contíguas: [0.70 TO *], [0.40 TO 0.70}
+  e [* TO 0.40}. Os limites são convertidos para
+  o formato numérico do idioma da interface.
+end note
+
+@enduml

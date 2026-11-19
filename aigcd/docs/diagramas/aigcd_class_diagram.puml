@@ -1,0 +1,136 @@
+@startuml AIGCD_Diagrama_de_Classes
+
+' ===== Estilo limpo e academico =====
+skinparam shadowing false
+skinparam defaultFontName "Helvetica"
+skinparam defaultFontSize 11
+skinparam linetype ortho
+
+skinparam class {
+  BackgroundColor #F8F9FB
+  BorderColor #1E5AA0
+  ArrowColor #333333
+  AttributeIconSize 0
+}
+
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #1E5AA0
+  FontStyle bold
+}
+
+skinparam note {
+  BackgroundColor #FFF8DC
+  BorderColor #A0853B
+}
+
+title <b>Plugin AIGCD — Diagrama de Classes</b>
+
+' ===== Plugin AIGCD (JAR isolado) =====
+package "iped-aigcd-plugin (JAR)" {
+  class AIGCDTask {
+    + {static} SCORE_IMAGE_FIELD : String
+    + {static} ENABLE_PARAM : String
+    - {static} init : AtomicBoolean
+    - {static} finished : AtomicBoolean
+    - {static} env : OrtEnvironment
+    - {static} session : OrtSession
+    --
+    + isEnabled() : boolean
+    + getConfigurables() : List<Configurable>
+    + init(ConfigurationManager) : void
+    + process(IItem) : void
+    + finish() : void
+    - runInference(BufferedImage) : float
+    - resizeAndCrop(BufferedImage, int, int) : BufferedImage
+    - toNormalizedTensor(BufferedImage) : float[]
+  }
+}
+
+' ===== UI no iped-app =====
+package "iped-app (interface grafica)" {
+  class AIGCDPanel {
+    - PROP_IMAGE : String
+    - PROP_VIDEO : String
+    - PROP_AUDIO : String
+    - PROP_TEXT : String
+    - overallBadge : JPanel
+    - imageBar : JProgressBar
+    - imageScore : JLabel
+    --
+    + loadDoc(Document doc) : void
+    - parseScore(Document, String) : int
+    - updateUI(int, int, int, int) : void
+    - showEmpty() : void
+  }
+
+  class App {
+    + aigcdPanel : AIGCDPanel
+    --
+    + {static} get() : App
+  }
+
+  class FileProcessor {
+    + processFile(Document) : void
+  }
+}
+
+' ===== Nucleo do IPED =====
+package "iped-engine / iped-api" {
+  abstract class AbstractTask {
+    + init(ConfigurationManager) : void
+    + {abstract} process(IItem) : void
+    + finish() : void
+  }
+
+  interface IItem {
+    + getMediaType() : MediaType
+    + getName() : String
+    + getBufferedInputStream() : InputStream
+    + setExtraAttribute(String, Object) : void
+  }
+
+  class EnableTaskProperty {
+    + EnableTaskProperty(String paramName)
+  }
+}
+
+' ===== Bibliotecas externas =====
+package "ONNX Runtime (Microsoft)" {
+  class OrtEnvironment
+  class OrtSession {
+    + run(Map<String, OnnxTensor>) : Result
+  }
+}
+
+package "Apache Lucene" {
+  class Document {
+    + get(String) : String
+    + getField(String) : IndexableField
+  }
+}
+
+' ===== Relacoes =====
+AIGCDTask --|> AbstractTask : extends
+AIGCDTask "1" o--> "1" OrtEnvironment : usa
+AIGCDTask "1" o--> "1" OrtSession   : usa
+AIGCDTask ..> IItem               : processa
+AIGCDTask ..> EnableTaskProperty  : registra
+
+AIGCDPanel ..> Document : le score
+App "1" *--> "1" AIGCDPanel : instancia
+FileProcessor ..> AIGCDPanel : loadDoc(doc)
+
+note right of AIGCDTask
+  Thread-safe via
+  AtomicBoolean + synchronized
+  (padrao do ImageSimilarityTask)
+end note
+
+note right of AIGCDPanel
+  Internacionalizado via
+  Messages.getString()
+  em 6 idiomas
+end note
+
+@enduml

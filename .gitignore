@@ -10,9 +10,8 @@ nbactions.xml
 # Claude Code local settings
 .claude/
 
-# Local documentation files (not part of the plugin)
-*.tex
-GUIA_IPED.md
+# Python bytecode (AIGCD evaluation scripts)
+__pycache__/
 
 # Eclipse per-project settings in submodules
 **/.settings/

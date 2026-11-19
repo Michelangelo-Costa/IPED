@@ -1,5 +1,12 @@
 # IPED Digital Forensic Tool
 
+> **Fork com o módulo AIGCD** (detecção de imagens geradas por IA), desenvolvido como
+> Trabalho de Conclusão de Curso. Documentação, passo a passo de replicação, modelo e
+> avaliação: **[aigcd/README.md](aigcd/README.md)**.
+>
+> *Fork with the AIGCD module (AI-generated image detection). See
+> [aigcd/README.md](aigcd/README.md).*
+
 IPED is an open source software that can be used to process and analyze digital evidence, often seized at crime scenes by law enforcement or in a corporate investigation by private examiners.
 
 ## History
