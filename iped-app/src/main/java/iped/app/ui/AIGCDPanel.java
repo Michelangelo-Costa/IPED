@@ -41,6 +41,46 @@ public class AIGCDPanel extends JPanel {
 
     private static final String SCORE_IMAGE_FIELD = "aigcd:score:image"; //$NON-NLS-1$
 
+    /**
+     * Lower bounds of the High and Medium levels. They must match the score ranges
+     * of the "AIGCD - Image Score" filters in AIFiltersConfig.json, so the level
+     * shown in this panel is always the one of the filter that lists the item.
+     */
+    private static final float HIGH_THRESHOLD = 0.70f;
+    private static final float MEDIUM_THRESHOLD = 0.40f;
+
+    private static final float NO_SCORE = -1f;
+
+    private enum Level {
+        NA("AIGCDPanel.NA", Color.LIGHT_GRAY, Color.GRAY), //$NON-NLS-1$
+        LOW("AIGCDPanel.Low", new Color(60, 160, 60), new Color(40, 120, 40)), //$NON-NLS-1$
+        MEDIUM("AIGCDPanel.Medium", new Color(220, 140, 0), new Color(180, 100, 0)), //$NON-NLS-1$
+        HIGH("AIGCDPanel.High", new Color(200, 50, 50), new Color(200, 50, 50)); //$NON-NLS-1$
+
+        private final String messageKey;
+        private final Color color;
+        private final Color textColor;
+
+        Level(String messageKey, Color color, Color textColor) {
+            this.messageKey = messageKey;
+            this.color = color;
+            this.textColor = textColor;
+        }
+
+        static Level of(float score) {
+            if (Float.isNaN(score) || score < 0) {
+                return NA;
+            }
+            if (score >= HIGH_THRESHOLD) {
+                return HIGH;
+            }
+            if (score >= MEDIUM_THRESHOLD) {
+                return MEDIUM;
+            }
+            return LOW;
+        }
+    }
+
     private JLabel overallLabel;
     private JPanel overallBadge;
     private JProgressBar imageBar;
@@ -135,73 +175,55 @@ public class AIGCDPanel extends JPanel {
             SwingUtilities.invokeLater(this::showEmpty);
             return;
         }
-        int imgScore = parseScore(doc, SCORE_IMAGE_FIELD);
+        float imgScore = parseScore(doc, SCORE_IMAGE_FIELD);
         SwingUtilities.invokeLater(() -> applyScore(imgScore));
     }
 
-    private int parseScore(Document doc, String field) {
+    private float parseScore(Document doc, String field) {
         String val = doc.get(field);
         if (val != null && !val.isEmpty()) {
             try {
-                return toPercent(Double.parseDouble(val));
+                return Float.parseFloat(val);
             } catch (NumberFormatException e) {
-                return -1;
+                return NO_SCORE;
             }
         }
         IndexableField indexableField = doc.getField(field);
         if (indexableField == null || indexableField.numericValue() == null) {
-            return -1;
+            return NO_SCORE;
         }
-        return toPercent(indexableField.numericValue().doubleValue());
+        return indexableField.numericValue().floatValue();
     }
 
-    private int toPercent(double score) {
-        return Math.max(0, Math.min(100, (int) Math.round(score * 100)));
+    /**
+     * Truncates (instead of rounding) the score to a percentage, so the displayed
+     * value never crosses a level boundary: a 0.6951 score is shown as 69% (Medium).
+     */
+    private int toPercent(float score) {
+        return Math.max(0, Math.min(100, (int) (score * 100)));
     }
 
-    private void applyScore(int img) {
-        setBar(imageBar, imageScore, img);
-
-        if (img < 0) {
-            overallLabel.setText(Messages.getString("AIGCDPanel.NA")); //$NON-NLS-1$
-            overallBadge.setBackground(Color.LIGHT_GRAY);
-        } else if (img >= 70) {
-            overallLabel.setText(Messages.getString("AIGCDPanel.High")); //$NON-NLS-1$
-            overallBadge.setBackground(new Color(200, 50, 50));
-        } else if (img >= 40) {
-            overallLabel.setText(Messages.getString("AIGCDPanel.Medium")); //$NON-NLS-1$
-            overallBadge.setBackground(new Color(220, 140, 0));
-        } else {
-            overallLabel.setText(Messages.getString("AIGCDPanel.Low")); //$NON-NLS-1$
-            overallBadge.setBackground(new Color(60, 160, 60));
-        }
+    private void applyScore(float score) {
+        Level level = Level.of(score);
+        setBar(imageBar, imageScore, score, level);
+        overallLabel.setText(Messages.getString(level.messageKey));
+        overallBadge.setBackground(level.color);
     }
 
-    private void setBar(JProgressBar bar, JLabel label, int score) {
-        if (score < 0) {
+    private void setBar(JProgressBar bar, JLabel label, float score, Level level) {
+        bar.setForeground(level.color);
+        label.setForeground(level.textColor);
+        if (level == Level.NA) {
             bar.setValue(0);
-            bar.setForeground(Color.LIGHT_GRAY);
-            label.setText(Messages.getString("AIGCDPanel.NA")); //$NON-NLS-1$
-            label.setForeground(Color.GRAY);
+            label.setText(Messages.getString(level.messageKey));
         } else {
-            bar.setValue(score);
-            label.setText(score + "%"); //$NON-NLS-1$
-            if (score >= 70) {
-                bar.setForeground(new Color(200, 50, 50));
-                label.setForeground(new Color(200, 50, 50));
-            } else if (score >= 40) {
-                bar.setForeground(new Color(220, 140, 0));
-                label.setForeground(new Color(180, 100, 0));
-            } else {
-                bar.setForeground(new Color(60, 160, 60));
-                label.setForeground(new Color(40, 120, 40));
-            }
+            int percent = toPercent(score);
+            bar.setValue(percent);
+            label.setText(percent + "%"); //$NON-NLS-1$
         }
     }
 
     private void showEmpty() {
-        setBar(imageBar, imageScore, -1);
-        overallLabel.setText(Messages.getString("AIGCDPanel.NA")); //$NON-NLS-1$
-        overallBadge.setBackground(Color.LIGHT_GRAY);
+        applyScore(NO_SCORE);
     }
 }

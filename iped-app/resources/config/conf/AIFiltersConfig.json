@@ -55,8 +55,8 @@
 
     {"name": "AIGCD - Image Score", "prefix": "AIGCDImage", "property": "aigcd\\:score\\:image", "value": "[* TO *]", "children":[
         {"name": "High",   "value": "[0.70 TO *]"},
-        {"name": "Medium", "value": "[0.40 TO 0.69]"},
-        {"name": "Low",    "value": "[* TO 0.39]"}
+        {"name": "Medium", "value": "[0.40 TO 0.70}"},
+        {"name": "Low",    "value": "[* TO 0.40}"}
     ]}
 
 ]}
