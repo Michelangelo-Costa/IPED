@@ -26,6 +26,10 @@ curl.exe -L -o model.onnx https://github.com/Michelangelo-Costa/IPED/releases/do
 # D9B32082803010AB2EB701F193FD853373A3D49F8429BFF7BB63EC8664F907FB
 ```
 
+Espelho: o mesmo arquivo (351.007.930 bytes) está no
+[Google Drive](https://drive.google.com/file/d/1Kfit6v2LSwYkfjol7m9RC7PSESPVbpx_/view?usp=sharing).
+Baixe pelo navegador e confira o SHA-256 acima.
+
 ## Opção 2: gerar a partir do checkpoint original
 
 O script [export_onnx.py](export_onnx.py) recria a rede com o timm, carrega os pesos do

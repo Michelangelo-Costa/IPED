@@ -98,6 +98,11 @@ O resultado deve ser:
 D9B32082803010AB2EB701F193FD853373A3D49F8429BFF7BB63EC8664F907FB
 ```
 
+Se o download pelo GitHub falhar, o mesmo arquivo está disponível no
+[Google Drive](https://drive.google.com/file/d/1Kfit6v2LSwYkfjol7m9RC7PSESPVbpx_/view?usp=sharing)
+(baixe pelo navegador, salve em `models\convnext-ai-detector\model.onnx` e confira o SHA-256
+da mesma forma).
+
 Se preferir gerar o modelo a partir do checkpoint original do autor, siga
 [../modelo/README.md](../modelo/README.md). O resultado é idêntico (mesmo SHA-256).
 
